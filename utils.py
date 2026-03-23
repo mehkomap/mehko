@@ -392,8 +392,9 @@ const BUSINESSES = __DATA_JSON__;
 const TYPES      = __TYPES_JSON__;
 
 const map = L.map('map').setView([34.05, -118.25], 10);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
+  minZoom: 0, maxZoom: 20,
+  attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 }).addTo(map);
 
 // --- Icon mapping ---
@@ -434,11 +435,12 @@ map.addLayer(cluster);
 
 function dotIcon(type) {
   const iconUrl = TYPE_ICON[type] || 'assets/comfort_food.png';
-  return L.icon({
-    iconUrl:      iconUrl,
-    iconSize:     [38, 38],
-    iconAnchor:   [19, 38],
-    popupAnchor:  [0, -38],
+  return L.divIcon({
+    className: '',
+    html: `<img src="${iconUrl}" style="width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 0 5px white) drop-shadow(0 0 5px white) drop-shadow(0 2px 6px rgba(0,0,0,.35))">`,
+    iconSize:    [52, 52],
+    iconAnchor:  [26, 52],
+    popupAnchor: [0, -52],
   });
 }
 
