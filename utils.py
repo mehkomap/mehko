@@ -188,21 +188,6 @@ def search_and_extract(name: str, city: str, client) -> tuple[str, str, str]:
 
 # ── Map generation ────────────────────────────────────────────────────────────
 
-_TYPE_HUE = {
-    "Bakery": "#f472b6", "BBQ": "#b91c1c", "Beverage/Coffee/Tea": "#0891b2",
-    "Breakfast/Brunch": "#f97316", "Caribbean": "#16a34a", "Catering/Events": "#9ca3af",
-    "Charcuterie/Boards": "#d1d5db", "Chinese": "#dc2626",
-    "Comfort Food/Soul Food": "#1d4ed8", "Desserts/Sweets": "#9333ea",
-    "Filipino": "#2563eb", "Indian/South Asian": "#ea580c",
-    "Japanese/Korean": "#e11d48", "Latin American": "#15803d",
-    "Mediterranean/Middle Eastern": "#ca8a04", "Mexican": "#166534",
-    "Nigerian/West African": "#7e22ce", "Pizza/Italian": "#991b1b",
-    "Salvadoran/Guatemalan": "#4ade80", "Sandwiches/Burgers": "#fb923c",
-    "Seafood": "#0284c7", "Vegan/Vegetarian": "#65a30d",
-    "Vietnamese": "#f87171", "Other": "#6b7280",
-}
-
-
 def build_map(businesses: list, cuisine_types: list, output_path: str = "index.html"):
     """
     Write a self-contained Leaflet HTML map with sidebar + profile panel.
@@ -212,7 +197,6 @@ def build_map(businesses: list, cuisine_types: list, output_path: str = "index.h
     html = _MAP_TEMPLATE
     html = html.replace("__DATA_JSON__",  json.dumps(businesses))
     html = html.replace("__TYPES_JSON__", json.dumps(cuisine_types))
-    html = html.replace("__TYPE_HUE__",   json.dumps(_TYPE_HUE))
     with open(output_path, "w") as f:
         f.write(html)
     print(f"Saved → {output_path}  ({len(businesses)} businesses)")
@@ -277,6 +261,26 @@ body { display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemF
 #sidebar-footer { padding: 10px 16px; font-size: 11px; color: #aaa; border-top: 1px solid #eee; }
 #sidebar-footer a { color: #4a90d9; text-decoration: none; }
 #sidebar-footer a:hover { text-decoration: underline; }
+#disclaimer-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.5); z-index: 9000;
+  align-items: center; justify-content: center;
+}
+#disclaimer-overlay.open { display: flex; }
+#disclaimer-box {
+  background: #fff; border-radius: 12px; padding: 28px 28px 22px;
+  max-width: 420px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+}
+#disclaimer-box h2 { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 12px; }
+#disclaimer-box p  { font-size: 13px; color: #444; line-height: 1.6; margin-bottom: 10px; }
+#disclaimer-box a  { color: #4a90d9; text-decoration: none; }
+#disclaimer-box a:hover { text-decoration: underline; }
+#disclaimer-close {
+  display: block; width: 100%; margin-top: 18px; padding: 10px;
+  background: #222; color: #fff; border: none; border-radius: 8px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+#disclaimer-close:hover { background: #444; }
 #profile {
   display: none; position: absolute; bottom: 0; left: 320px; width: 280px;
   background: #fff; border: 1px solid #ddd; border-radius: 12px 12px 0 0;
@@ -303,6 +307,17 @@ body { display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemF
 .profile-link.ig  { background: #f9f3ff; border-color: #c084fc; color: #7e22ce; }
 .profile-link.web { background: #eff6ff; border-color: #60a5fa; color: #1d4ed8; }
 #map { flex: 1; height: 100vh; }
+
+/* ── Cluster count colors: light → dark green ── */
+.marker-cluster-small div        { background-color: #a5d6a7; }
+.marker-cluster-small            { background-color: #c8e6c9; }
+.marker-cluster-medium div       { background-color: #4caf50; }
+.marker-cluster-medium           { background-color: #a5d6a7; }
+.marker-cluster-large div        { background-color: #1b5e20; }
+.marker-cluster-large            { background-color: #388e3c; }
+.marker-cluster-small div span,
+.marker-cluster-medium div span,
+.marker-cluster-large div span   { color: #fff; font-weight: 600; }
 
 /* ── Mobile ──────────────────────────────────────────────── */
 #list-toggle {
@@ -354,6 +369,14 @@ body { display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemF
 </div>
 <div id="map"></div>
 <button id="list-toggle" onclick="toggleSidebar()">☰ List</button>
+<div id="disclaimer-overlay">
+  <div id="disclaimer-box">
+    <h2>About This Map</h2>
+    <p>This directory is based on active MEHKO (Micro-Enterprise Home Kitchen Operation) licenses issued by LA County. Not all listed businesses may currently be in operation, and some details — including addresses, contact info, and cuisine type — may be incomplete or out of date.</p>
+    <p>Questions or corrections? Contact <a href="mailto:swietek@usc.edu">swietek@usc.edu</a>.</p>
+    <button id="disclaimer-close" onclick="closeDisclaimer()">Got it</button>
+  </div>
+</div>
 <div id="profile">
   <span id="profile-close">&#x2715;</span>
   <div id="profile-name"></div>
@@ -367,12 +390,39 @@ body { display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemF
 <script>
 const BUSINESSES = __DATA_JSON__;
 const TYPES      = __TYPES_JSON__;
-const TYPE_HUE   = __TYPE_HUE__;
 
 const map = L.map('map').setView([34.05, -118.25], 10);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
 }).addTo(map);
+
+// --- Icon mapping ---
+const TYPE_ICON = {
+  'Bakery':                       'assets/bakery.png',
+  'BBQ':                          'assets/bbq.png',
+  'Beverage/Coffee/Tea':          'assets/cafe.png',
+  'Breakfast/Brunch':             'assets/comfort_food.png',
+  'Caribbean':                    'assets/bbq.png',
+  'Catering/Events':              'assets/comfort_food.png',
+  'Charcuterie/Boards':           'assets/comfort_food.png',
+  'Chinese':                      'assets/chinese_asian.png',
+  'Comfort Food/Soul Food':       'assets/comfort_food.png',
+  'Desserts/Sweets':              'assets/desserts.png',
+  'Filipino':                     'assets/filipino.png',
+  'Indian/South Asian':           'assets/indian.png',
+  'Japanese/Korean':              'assets/chinese_asian.png',
+  'Latin American':               'assets/latin.png',
+  'Mediterranean/Middle Eastern': 'assets/indian.png',
+  'Mexican':                      'assets/mexican.png',
+  'Nigerian/West African':        'assets/latin.png',
+  'Pizza/Italian':                'assets/pizza.png',
+  'Salvadoran/Guatemalan':        'assets/mexican.png',
+  'Sandwiches/Burgers':           'assets/burgers.png',
+  'Seafood':                      'assets/filipino.png',
+  'Vegan/Vegetarian':             'assets/comfort_food.png',
+  'Vietnamese':                   'assets/chinese_asian.png',
+  'Other':                        'assets/comfort_food.png',
+};
 
 // --- State ---
 const activeFilters = { search: '', type: 'ALL' };
@@ -383,11 +433,12 @@ const cluster = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAt
 map.addLayer(cluster);
 
 function dotIcon(type) {
-  const c = TYPE_HUE[type] || '#6b7280';
-  return L.divIcon({
-    className: '',
-    html: `<div style="width:12px;height:12px;border-radius:50%;background:${c};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>`,
-    iconSize: [12,12], iconAnchor: [6,6]
+  const iconUrl = TYPE_ICON[type] || 'assets/comfort_food.png';
+  return L.icon({
+    iconUrl:      iconUrl,
+    iconSize:     [38, 38],
+    iconAnchor:   [19, 38],
+    popupAnchor:  [0, -38],
   });
 }
 
@@ -474,6 +525,11 @@ function showProfile(biz) {
   updateDisplay();
 }
 
+function closeDisclaimer() {
+  document.getElementById('disclaimer-overlay').classList.remove('open');
+  localStorage.setItem('mehko-disclaimer-seen', '1');
+}
+
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   const btn = document.getElementById('list-toggle');
@@ -494,6 +550,10 @@ function resetAll() {
 document.addEventListener('DOMContentLoaded', () => {
   renderChips();
   updateDisplay();
+
+  if (!localStorage.getItem('mehko-disclaimer-seen')) {
+    document.getElementById('disclaimer-overlay').classList.add('open');
+  }
 
   document.getElementById('search').addEventListener('input', e => {
     activeFilters.search = e.target.value;
