@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LA County MEHKO Businesses</title>
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
@@ -166,7 +168,7 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
 .marker-cluster-large            { background-color: rgba(31,41,55,.25) !important; box-shadow: 0 0 0 2px rgba(31,41,55,.15); }
 .marker-cluster-small div,
 .marker-cluster-medium div,
-.marker-cluster-large div        { background-color: rgba(227, 171, 171, 0.8) !important; }
+.marker-cluster-large div        { background-color: var(--peach) !important; }
 .marker-cluster-small div span,
 .marker-cluster-medium div span,
 .marker-cluster-large div span   { color: #fff !important; font-weight: 700; font-family: "Inter", system-ui, sans-serif; } */ */
@@ -421,7 +423,7 @@ const activeFilters = { search: '', type: 'ALL' };
 let selectedBiz = null;
 
 // --- Map ---
-const cluster = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 14 });
+const cluster = L.markerClusterGroup({ maxClusterRadius: 10, disableClusteringAtZoom: 12 });
 map.addLayer(cluster);
 
 function dotIcon(type) {
@@ -429,7 +431,7 @@ function dotIcon(type) {
   return L.divIcon({
     className: '',
     html: `<img src="${iconUrl}" style="width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 0 5px white) drop-shadow(0 0 5px white) drop-shadow(0 2px 6px rgba(0,0,0,.35))">`,
-    iconSize:    [52, 52],
+    iconSize:    [10,10],
     iconAnchor:  [26, 52],
     popupAnchor: [0, -52],
   });
@@ -460,8 +462,9 @@ function updateDisplay() {
   list.innerHTML = filtered.map(b => `
     <div class="biz-item ${selectedBiz === b.name ? 'selected' : ''}"
          onclick="focusBusiness('${b.name.replace(/'/g, "\\'")}')">
-      <div class="biz-name">${b.name}</div>
+      <div class="biz-name">${b.name}
       <div class="biz-type">${b.type}${b.tags ? ' · ' + b.tags : ''}</div>
+      </div>
     </div>
   `).join('');
 
