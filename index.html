@@ -206,6 +206,18 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
   box-shadow: 0 4px 14px rgba(183, 110, 58, 0.12);
 }
 
+/* ── Vibe toggles ── */
+.vibe-container { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.vibe-btn {
+  background: #f3f0eb; border: none; padding: 5px 11px;
+  border-radius: 20px; font-size: 12px; color: #4a3621;
+  cursor: pointer; transition: background 0.2s, transform 0.1s;
+  line-height: 1.4;
+}
+.vibe-btn:hover  { background: #e5e0d8; }
+.vibe-btn.active { background: var(--red); color: #fff; }
+.vibe-btn.active:hover { background: #c0392b; }
+
 /* ── Mobile ──────────────────────────────────────────────── */
 #list-toggle {
   display: none;
@@ -344,6 +356,13 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
   <div id="profile-desc"></div>
   <div id="profile-addr"></div>
   <div id="profile-links"></div>
+  <div class="vibe-container" id="profile-vibes">
+    <button class="vibe-btn" data-vibe="hidden-gem"  onclick="toggleVibe(this)">💎 Hidden Gem</button>
+    <button class="vibe-btn" data-vibe="spicy"       onclick="toggleVibe(this)">🔥 Spicy</button>
+    <button class="vibe-btn" data-vibe="friendly"    onclick="toggleVibe(this)">🤝 Friendly</button>
+    <button class="vibe-btn" data-vibe="family"      onclick="toggleVibe(this)">👨‍👩‍👧 Family</button>
+    <button class="vibe-btn" data-vibe="quick-bite"  onclick="toggleVibe(this)">⚡ Quick Bite</button>
+  </div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
@@ -494,8 +513,24 @@ function showProfile(biz) {
   if (biz.website) {
     links.innerHTML += `<a href="${biz.website}" target="_blank" class="profile-link web">Website</a>`;
   }
+  // Restore saved vibes for this business
+  const saved = JSON.parse(localStorage.getItem('vibes') || '{}')[biz.name] || [];
+  document.querySelectorAll('#profile-vibes .vibe-btn').forEach(btn => {
+    btn.classList.toggle('active', saved.includes(btn.dataset.vibe));
+  });
+
   document.getElementById('profile').classList.add('open');
   updateDisplay();
+}
+
+function toggleVibe(btn) {
+  btn.classList.toggle('active');
+  const bizName = document.getElementById('profile-name').textContent;
+  const all = JSON.parse(localStorage.getItem('vibes') || '{}');
+  const active = [...document.querySelectorAll('#profile-vibes .vibe-btn.active')]
+    .map(b => b.dataset.vibe);
+  if (active.length) all[bizName] = active; else delete all[bizName];
+  localStorage.setItem('vibes', JSON.stringify(all));
 }
 
 // ── Submission form ──────────────────────────────────────────────────────────
