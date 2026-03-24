@@ -54,9 +54,46 @@ body { display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemF
 .biz-name { font-size: 13px; font-weight: 600; color: #222; }
 .biz-type { font-size: 11px; color: #888; margin-top: 1px; }
 #biz-count { padding: 6px 16px; font-size: 11px; color: #999; border-bottom: 1px solid #eee; }
-#sidebar-footer { padding: 10px 16px; font-size: 11px; color: #aaa; border-top: 1px solid #eee; }
+#sidebar-footer { padding: 10px 16px; font-size: 11px; color: #aaa; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 #sidebar-footer a { color: #4a90d9; text-decoration: none; }
 #sidebar-footer a:hover { text-decoration: underline; }
+#submit-btn {
+  flex-shrink: 0; padding: 5px 12px; border-radius: 16px; font-size: 11px;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+  background: #4a90d9; color: #fff; border: none;
+}
+#submit-btn:hover { background: #357abd; }
+/* ── Submission modal ── */
+#submit-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.5); z-index: 9000;
+  align-items: center; justify-content: center;
+}
+#submit-overlay.open { display: flex; }
+#submit-box {
+  background: #fff; border-radius: 12px; padding: 24px 24px 20px;
+  max-width: 440px; width: 92%; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+  max-height: 90vh; overflow-y: auto;
+}
+#submit-box h2 { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 4px; }
+#submit-box .sub-hint { font-size: 11px; color: #888; margin-bottom: 16px; }
+.form-row { margin-bottom: 12px; }
+.form-row label { display: block; font-size: 11px; font-weight: 600; color: #555; margin-bottom: 4px; }
+.form-row input, .form-row select, .form-row textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px;
+  font-size: 13px; outline: none; font-family: inherit;
+}
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: #4a90d9; }
+.form-row textarea { resize: vertical; min-height: 70px; }
+.form-row .hint { font-size: 10px; color: #aaa; margin-top: 3px; }
+.form-actions { display: flex; gap: 8px; margin-top: 16px; }
+.form-actions button { flex: 1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+#form-cancel { background: #f3f4f6; color: #444; }
+#form-cancel:hover { background: #e5e7eb; }
+#form-submit { background: #4a90d9; color: #fff; }
+#form-submit:hover { background: #357abd; }
+#form-success { display: none; text-align: center; padding: 20px 0; }
+#form-success p { font-size: 14px; color: #444; margin-top: 8px; }
 #disclaimer-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,.5); z-index: 9000;
@@ -160,10 +197,81 @@ body { display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemF
   <div id="biz-count"></div>
   <div id="biz-list"></div>
   <div id="sidebar-footer">
-    Error, question, or comment? <a href="mailto:swietek@usc.edu">swietek@usc.edu</a>
+    <span>Error or question? <a href="mailto:swietek@usc.edu">swietek@usc.edu</a></span>
+    <button id="submit-btn" onclick="openSubmitForm()">+ Submit</button>
   </div>
 </div>
 <div id="map"></div>
+<div id="submit-overlay">
+  <div id="submit-box">
+    <div id="form-fields">
+      <h2>Submit a Business or Correction</h2>
+      <p class="sub-hint">Add a new MEHKO business or correct existing information. All submissions are reviewed before publishing.</p>
+      <div class="form-row">
+        <label>Submission type</label>
+        <select id="f-type">
+          <option value="new">New business</option>
+          <option value="update">Correction to existing business</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Business name <span style="color:#e55">*</span></label>
+        <input id="f-name" type="text" placeholder="e.g. Maria's Tamales">
+      </div>
+      <div class="form-row">
+        <label>Address</label>
+        <input id="f-address" type="text" placeholder="Street address">
+      </div>
+      <div class="form-row">
+        <label>City</label>
+        <input id="f-city" type="text" placeholder="e.g. Los Angeles">
+      </div>
+      <div class="form-row">
+        <label>Business type</label>
+        <select id="f-biztype">
+          <option value="">— select —</option>
+          <option>Bakery</option><option>BBQ</option><option>Beverage/Coffee/Tea</option>
+          <option>Breakfast/Brunch</option><option>Caribbean</option><option>Catering/Events</option>
+          <option>Charcuterie/Boards</option><option>Chinese</option><option>Comfort Food/Soul Food</option>
+          <option>Desserts/Sweets</option><option>Filipino</option><option>Indian/South Asian</option>
+          <option>Japanese/Korean</option><option>Latin American</option>
+          <option>Mediterranean/Middle Eastern</option><option>Mexican</option>
+          <option>Nigerian/West African</option><option>Pizza/Italian</option>
+          <option>Salvadoran/Guatemalan</option><option>Sandwiches/Burgers</option>
+          <option>Seafood</option><option>Vegan/Vegetarian</option><option>Vietnamese</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Instagram handle</label>
+        <input id="f-instagram" type="text" placeholder="@handle">
+      </div>
+      <div class="form-row">
+        <label>Website</label>
+        <input id="f-website" type="url" placeholder="https://...">
+      </div>
+      <div class="form-row">
+        <label>Notes / corrections</label>
+        <textarea id="f-notes" placeholder="Any additional details or what needs to be corrected…"></textarea>
+      </div>
+      <div class="form-row">
+        <label>Your email <span style="color:#aaa;font-weight:400">(optional — for follow-up)</span></label>
+        <input id="f-email" type="email" placeholder="you@example.com">
+      </div>
+      <div class="form-actions">
+        <button id="form-cancel" onclick="closeSubmitForm()">Cancel</button>
+        <button id="form-submit" onclick="submitForm()">Submit</button>
+      </div>
+    </div>
+    <div id="form-success">
+      <div style="font-size:32px">✓</div>
+      <p>Thanks! Your submission has been received and will be reviewed.</p>
+      <div class="form-actions" style="margin-top:16px">
+        <button id="form-cancel" onclick="closeSubmitForm()" style="background:#4a90d9;color:#fff;flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="disclaimer-overlay">
   <div id="disclaimer-box">
     <h2>About This Map</h2>
@@ -322,6 +430,69 @@ function showProfile(biz) {
   document.getElementById('profile').classList.add('open');
   updateDisplay();
 }
+
+// ── Submission form ──────────────────────────────────────────────────────────
+const FORMSPREE_URL = 'YOUR_FORMSPREE_ENDPOINT'; // replace with https://formspree.io/f/xxxxxxxx
+
+function openSubmitForm() {
+  document.getElementById('form-fields').style.display = '';
+  document.getElementById('form-success').style.display = 'none';
+  document.getElementById('submit-overlay').classList.add('open');
+}
+
+function closeSubmitForm() {
+  document.getElementById('submit-overlay').classList.remove('open');
+  // Reset form
+  ['f-name','f-address','f-city','f-instagram','f-website','f-notes','f-email'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-type').selectedIndex = 0;
+  document.getElementById('f-biztype').selectedIndex = 0;
+}
+
+async function submitForm() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('Business name is required.'); return; }
+
+  const btn = document.getElementById('form-submit');
+  btn.textContent = 'Sending…'; btn.disabled = true;
+
+  const data = {
+    submission_type: document.getElementById('f-type').value,
+    business_name:   name,
+    address:         document.getElementById('f-address').value.trim(),
+    city:            document.getElementById('f-city').value.trim(),
+    business_type:   document.getElementById('f-biztype').value,
+    instagram:       document.getElementById('f-instagram').value.trim(),
+    website:         document.getElementById('f-website').value.trim(),
+    notes:           document.getElementById('f-notes').value.trim(),
+    email:           document.getElementById('f-email').value.trim(),
+  };
+
+  try {
+    const resp = await fetch(FORMSPREE_URL, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (resp.ok) {
+      document.getElementById('form-fields').style.display = 'none';
+      document.getElementById('form-success').style.display = '';
+    } else {
+      alert('Something went wrong. Please email swietek@usc.edu directly.');
+    }
+  } catch(e) {
+    alert('Could not connect. Please email swietek@usc.edu directly.');
+  }
+  btn.textContent = 'Submit'; btn.disabled = false;
+}
+
+// Close on overlay click
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('submit-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('submit-overlay')) closeSubmitForm();
+  });
+});
 
 function closeDisclaimer() {
   document.getElementById('disclaimer-overlay').classList.remove('open');

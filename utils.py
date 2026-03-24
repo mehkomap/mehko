@@ -364,7 +364,8 @@ body { display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemF
   <div id="biz-count"></div>
   <div id="biz-list"></div>
   <div id="sidebar-footer">
-    Error, question, or comment? <a href="mailto:swietek@usc.edu">swietek@usc.edu</a>
+    <span>Error or question? <a href="mailto:swietek@usc.edu">swietek@usc.edu</a></span>
+    <button id="submit-btn" onclick="openSubmitForm()">+ Submit</button>
   </div>
 </div>
 <div id="map"></div>

@@ -9,13 +9,12 @@
     "description": "Serves burgers with various toppings in Los Angeles."
   },
   "ABSOLUTE SWEETNESS CAFE": {
-    "business_type": "Mexican",
+    "business_type": "Beverage/Coffee/Tea",
     "cuisine_tags": [
-      "mexican",
       "cafe",
       "sweets"
     ],
-    "description": "Mom-and-pop Mexican cafe offering food and sweet treats in Montebello."
+    "description": "Mom-and-pop cafe offering food and sweet treats in Montebello."
   },
   "ADA DELICIOSA COMIDA GUAT": {
     "business_type": "Salvadoran/Guatemalan",
@@ -1622,13 +1621,13 @@
     "description": "Affordable Mexican tacos and related dishes."
   },
   "ONGGI JONGGI": {
-    "business_type": "Bakery",
+    "business_type": "Other",
     "cuisine_tags": [
       "korean",
       "cakes",
       "custom"
     ],
-    "description": "Korean-inspired custom cakes baked by a home baker mom."
+    "description": ""
   },
   "OTTI'S": {
     "business_type": "Other",
