@@ -36,8 +36,8 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
   box-shadow: 2px 0 12px rgba(0,0,0,.06); z-index: 1000;
 }
 #sidebar-header { padding: 16px; border-bottom: 1px solid var(--border-soft); }
-#sidebar-header h1 { font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; letter-spacing: -0.02em; }
-#mehko-link { font-size: 11px; color: var(--green); text-decoration: none; display: block; margin-bottom: 10px; }
+#sidebar-header h1 { font-size: px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; letter-spacing: -0.02em; }
+#mehko-link { font-size: 11px; color: var(--navy); text-decoration: none; display: block; margin-bottom: 10px; }
 #mehko-link:hover { text-decoration: underline; }
 #search {
   width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb;
@@ -84,7 +84,7 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
 #submit-btn {
   flex-shrink: 0; padding: 5px 12px; border-radius: 999px; font-size: 11px;
   font-weight: 600; cursor: pointer; white-space: nowrap;
-  background: var(--green); color: #fff; border: none;
+  background: var(--gold); color: #fff; border: none;
 }
 #submit-btn:hover { background: #155c3f; }
 /* ── Submission modal ── */
@@ -171,7 +171,7 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
 .marker-cluster-large            { background-color: rgba(31,41,55,.25) !important; box-shadow: 0 0 0 2px rgba(31,41,55,.15); }
 .marker-cluster-small div,
 .marker-cluster-medium div,
-.marker-cluster-large div        { background-color: var(--peach) !important; }
+.marker-cluster-large div        { background-color: var(--navy) !important; }
 .marker-cluster-small div span,
 .marker-cluster-medium div span,
 .marker-cluster-large div span   { color: #fff !important; font-weight: 700; font-family: "Inter", system-ui, sans-serif; } */ */
@@ -263,7 +263,7 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
   <div class="header-container">
     <div id="sidebar-header">
       <h1><img src="assets/pierogi.jpeg" style="width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0;">MEHKO <span style="color:var(--red);font-family:'Dancing Script',cursive;font-size:20px;font-weight:700;line-height:1;">Los Angeles</span></h1>
-      <a id="mehko-link" href="http://www.publichealth.lacounty.gov/EH/business/microenterprise-home-kitchen-operation.htm" target="_blank">What is a MEHKO?</a>
+      <a id="mehko-link" href="http://www.publichealth.lacounty.gov/EH/business/microenterprise-home-kitchen-operation.htm" target="_blank">Mapping Home Kitchens. What is MEHKO?</a>
       <div id="search-row">
         <input id="search" type="text" placeholder="Search by name or cuisine…" autocomplete="off">
         <button id="reset-btn" onclick="resetAll()">&#x2715; Reset</button>
