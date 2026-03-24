@@ -206,17 +206,21 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
   box-shadow: 0 4px 14px rgba(183, 110, 58, 0.12);
 }
 
-/* ── Vibe toggles ── */
-.vibe-container { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
-.vibe-btn {
-  background: #f3f0eb; border: none; padding: 5px 11px;
-  border-radius: 20px; font-size: 12px; color: #4a3621;
-  cursor: pointer; transition: background 0.2s, transform 0.1s;
-  line-height: 1.4;
+/* ── Community star ── */
+#star-row {
+  display: flex; align-items: center; gap: 8px; margin-top: 14px;
+  padding-top: 12px; border-top: 1px solid var(--border-soft);
 }
-.vibe-btn:hover  { background: #e5e0d8; }
-.vibe-btn.active { background: var(--red); color: #fff; }
-.vibe-btn.active:hover { background: #c0392b; }
+#star-btn {
+  background: none; border: 1.5px solid #d1c9be; border-radius: 999px;
+  padding: 5px 14px; font-size: 13px; cursor: pointer; color: #7a6a58;
+  transition: all 0.2s; display: flex; align-items: center; gap: 5px;
+}
+#star-btn:hover              { border-color: #c9a843; color: #c9a843; background: #fdfaf4; }
+#star-btn.starred            { background: #fdf6e3; border-color: #c9a843; color: #a07c20; font-weight: 600; }
+#star-label                  { font-size: 11px; color: var(--text-muted); }
+/* star badge on list cards */
+.biz-item .star-badge        { font-size: 13px; margin-left: auto; flex-shrink: 0; }
 
 /* ── Mobile ──────────────────────────────────────────────── */
 #list-toggle {
@@ -356,12 +360,9 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
   <div id="profile-desc"></div>
   <div id="profile-addr"></div>
   <div id="profile-links"></div>
-  <div class="vibe-container" id="profile-vibes">
-    <button class="vibe-btn" data-vibe="hidden-gem"  onclick="toggleVibe(this)">💎 Hidden Gem</button>
-    <button class="vibe-btn" data-vibe="spicy"       onclick="toggleVibe(this)">🔥 Spicy</button>
-    <button class="vibe-btn" data-vibe="friendly"    onclick="toggleVibe(this)">🤝 Friendly</button>
-    <button class="vibe-btn" data-vibe="family"      onclick="toggleVibe(this)">👨‍👩‍👧 Family</button>
-    <button class="vibe-btn" data-vibe="quick-bite"  onclick="toggleVibe(this)">⚡ Quick Bite</button>
+  <div id="star-row">
+    <button id="star-btn" onclick="toggleStar()">⭐ Star this place</button>
+    <span id="star-label"></span>
   </div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -513,25 +514,68 @@ function showProfile(biz) {
   if (biz.website) {
     links.innerHTML += `<a href="${biz.website}" target="_blank" class="profile-link web">Website</a>`;
   }
-  // Restore saved vibes for this business
-  const saved = JSON.parse(localStorage.getItem('vibes') || '{}')[biz.name] || [];
-  document.querySelectorAll('#profile-vibes .vibe-btn').forEach(btn => {
-    btn.classList.toggle('active', saved.includes(btn.dataset.vibe));
-  });
+  // Update star button for this business
+  const isStarred = currentStarred === biz.name;
+  const btn = document.getElementById('star-btn');
+  btn.classList.toggle('starred', isStarred);
+  btn.textContent = isStarred ? '⭐ Community Pick' : '⭐ Star this place';
+  document.getElementById('star-label').textContent = isStarred
+    ? 'Most recently starred by the community'
+    : currentStarred ? `Currently: ${currentStarred}` : '';
 
   document.getElementById('profile').classList.add('open');
   updateDisplay();
 }
 
-function toggleVibe(btn) {
-  btn.classList.toggle('active');
-  const bizName = document.getElementById('profile-name').textContent;
-  const all = JSON.parse(localStorage.getItem('vibes') || '{}');
-  const active = [...document.querySelectorAll('#profile-vibes .vibe-btn.active')]
-    .map(b => b.dataset.vibe);
-  if (active.length) all[bizName] = active; else delete all[bizName];
-  localStorage.setItem('vibes', JSON.stringify(all));
+// ── Community star (JSONBin) ─────────────────────────────────────────────────
+const JSONBIN_URL    = 'YOUR_JSONBIN_URL';   // e.g. https://api.jsonbin.io/v3/b/XXXXXXXX
+const JSONBIN_KEY    = 'YOUR_JSONBIN_APIKEY'; // $2b$10$... from jsonbin.io
+let   currentStarred = null;
+
+async function loadStar() {
+  if (!JSONBIN_URL || JSONBIN_URL.startsWith('YOUR')) return;
+  try {
+    const r = await fetch(JSONBIN_URL + '/latest', {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    const d = await r.json();
+    currentStarred = d.record?.starred || null;
+    updateDisplay(); // re-render list to show badge
+  } catch(e) { console.warn('Star load failed', e); }
 }
+
+async function toggleStar() {
+  if (!JSONBIN_URL || JSONBIN_URL.startsWith('YOUR')) {
+    alert('Set up JSONBin first — see JSONBIN_URL in the source.');
+    return;
+  }
+  const bizName = document.getElementById('profile-name').textContent;
+  // If already starred, unstar; otherwise star this one
+  const newStarred = currentStarred === bizName ? null : bizName;
+  const log = [];
+  try {
+    // Read existing log first
+    const r = await fetch(JSONBIN_URL + '/latest', { headers: { 'X-Master-Key': JSONBIN_KEY }});
+    const d = await r.json();
+    log.push(...(d.record?.log || []));
+  } catch(e) {}
+  if (newStarred) log.unshift({ name: newStarred, ts: new Date().toISOString() });
+  const payload = { starred: newStarred, log: log.slice(0, 50) }; // keep last 50
+  try {
+    await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
+      body: JSON.stringify(payload)
+    });
+    currentStarred = newStarred;
+    // refresh profile star UI
+    const biz = BUSINESSES.find(b => b.name === bizName);
+    if (biz) showProfile(biz);
+    updateDisplay();
+  } catch(e) { alert('Could not save star — try again.'); }
+}
+
+loadStar();
 
 // ── Submission form ──────────────────────────────────────────────────────────
 const FORMSPREE_URL = 'YOUR_FORMSPREE_ENDPOINT'; // replace with https://formspree.io/f/xxxxxxxx
