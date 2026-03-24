@@ -394,13 +394,25 @@ body { display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemF
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
-const BUSINESSES = __DATA_JSON__;
-const TYPES      = __TYPES_JSON__;
+// Data loaded from data/businesses.json
+let BUSINESSES = [], TYPES = [];
+
+fetch('data/businesses.json')
+  .then(r => r.json())
+  .then(data => {
+    BUSINESSES = data.businesses;
+    TYPES      = data.types;
+    renderChips();
+    updateDisplay();
+    if (!localStorage.getItem('mehko-disclaimer-seen')) {
+      document.getElementById('disclaimer-overlay').classList.add('open');
+    }
+  })
+  .catch(() => alert('Could not load business data. If running locally, use: python -m http.server'));
 
 const map = L.map('map').setView([34.05, -118.25], 10);
-L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
-  minZoom: 0, maxZoom: 20,
-  attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
 }).addTo(map);
 
 // --- Icon mapping ---
