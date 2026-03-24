@@ -190,16 +190,21 @@ def search_and_extract(name: str, city: str, client) -> tuple[str, str, str]:
 
 def build_map(businesses: list, cuisine_types: list, output_path: str = "index.html"):
     """
-    Write a self-contained Leaflet HTML map with sidebar + profile panel.
+    Write the Leaflet HTML map and a companion data/businesses.json file.
     `businesses` is a list of dicts with keys:
         name, type, tags, description, address, instagram, website, lat, lon
     """
-    html = _MAP_TEMPLATE
-    html = html.replace("__DATA_JSON__",  json.dumps(businesses))
-    html = html.replace("__TYPES_JSON__", json.dumps(cuisine_types))
+    import os
+    data_dir = os.path.join(os.path.dirname(output_path) or ".", "data")
+    os.makedirs(data_dir, exist_ok=True)
+    json_path = os.path.join(data_dir, "businesses.json")
+    with open(json_path, "w") as f:
+        json.dump({"businesses": businesses, "types": cuisine_types}, f, indent=2)
+    print(f"Saved → {json_path}  ({len(businesses)} businesses)")
+
     with open(output_path, "w") as f:
-        f.write(html)
-    print(f"Saved → {output_path}  ({len(businesses)} businesses)")
+        f.write(_MAP_TEMPLATE)
+    print(f"Saved → {output_path}")
 
 
 _MAP_TEMPLATE = """<!DOCTYPE html>
