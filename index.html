@@ -391,7 +391,12 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
 <div id="disclaimer-overlay">
   <div id="disclaimer-box">
     <h2>About This Map</h2>
-    <p>This directory is based on active MEHKO (Micro-Enterprise Home Kitchen Operation) licenses issued by LA County. Not all listed businesses may currently be in operation, and some details — including addresses, contact info, and cuisine type — may be incomplete or out of date.</p>
+    <p>Explore LA’s Home Kitchens
+This directory maps active MEHKO (Micro-Enterprise Home Kitchen Operation) licenses in Los Angeles.
+
+Note: Listings and cuisine descriptions are AI-generated from permit data and may contain errors. Since these are independent home kitchens, details like hours and availability change quickly.
+
+See a mistake? Help us keep the map accurate for the community by submitting corrections & additions. Smacznego!</p>
     <p>Questions or corrections? Contact <a href="mailto:swietek@usc.edu">swietek@usc.edu</a>.</p>
     <button id="disclaimer-close" onclick="closeDisclaimer()">Got it</button>
   </div>
@@ -405,8 +410,8 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
     <span id="star-count-badge" style="display:none"></span>
   </div>
   <div id="profile-name"></div>
-  <div id="profile-type"></div>
   <div id="profile-desc"></div>
+  <div id="profile-type"></div>
   <div id="profile-addr"></div>
   <div id="profile-links"></div>
   <button id="profile-edit-btn" onclick="openEditForm()" style="
@@ -552,9 +557,9 @@ function updateDisplay() {
   list.innerHTML = filtered.map(b => `
     <div class="biz-item ${selectedBiz === b.name ? 'selected' : ''}"
          onclick="focusBusiness('${b.name.replace(/'/g, "\\'")}')">
-      <div class="biz-name">${b.name}</div>
+      <div class="biz-name">${b.name}
       <div class="biz-type">${b.type}${b.tags ? ' · ' + b.tags : ''}</div>
-      </div>
+      </div></div>
     </div>
   `).join('');
 
