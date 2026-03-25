@@ -315,6 +315,7 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
           <option value="update">Correction to existing business</option>
         </select>
       </div>
+      <input type="hidden" id="f-original-name">
       <div class="form-row">
         <label>Business name <span style="color:#e55">*</span></label>
         <input id="f-name" type="text" placeholder="e.g. Maria's Tamales">
@@ -389,6 +390,15 @@ body { display: flex; height: 100vh; font-family: system-ui, -apple-system, "Seg
   <div id="profile-desc"></div>
   <div id="profile-addr"></div>
   <div id="profile-links"></div>
+  <button id="profile-edit-btn" onclick="openEditForm()" style="
+    margin-top:12px; width:100%; padding:8px; border-radius:8px;
+    background:none; border:1px solid var(--border-soft);
+    font-size:12px; color:var(--text-muted); cursor:pointer;
+    font-family:inherit; transition:all .15s;
+  " onmouseover="this.style.borderColor='var(--navy)';this.style.color='var(--navy)'"
+     onmouseout="this.style.borderColor='var(--border-soft)';this.style.color='var(--text-muted)'">
+    ✏️ Suggest an edit
+  </button>
   <div id="star-row">
     <button id="star-btn" onclick="toggleStar()">⭐ Star this place</button>
     <span id="star-label"></span>
@@ -412,7 +422,7 @@ fetch('data/businesses.json')
     }
   })
   .catch(() => alert('Could not load business data. If running locally, use: python -m http.server'));
-const map = L.map('map').setView([34.05, -118.25], 10);
+const map = L.map('map').setView([34.006, -118.360], 14);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
 }).addTo(map);
@@ -450,18 +460,43 @@ const activeFilters = { search: '', type: 'ALL' };
 let selectedBiz = null;
 
 // --- Map ---
-const cluster = L.markerClusterGroup({ maxClusterRadius: 10, disableClusteringAtZoom: 12 });
+const cluster = L.markerClusterGroup({ maxClusterRadius: 50, disableClusteringAtZoom: 12 });
 map.addLayer(cluster);
 
-function dotIcon(type) {
+// Swap between dots and icons when crossing zoom threshold
+let _lastIconZoom = null;
+map.on('zoomend', () => {
+  const wasIcon = _lastIconZoom > ICON_ZOOM_THRESHOLD;
+  const isIcon  = map.getZoom() > ICON_ZOOM_THRESHOLD;
+  if (wasIcon !== isIcon) updateDisplay();
+  _lastIconZoom = map.getZoom();
+});
+
+const ICON_ZOOM_THRESHOLD = 12;
+
+function simpleDot() {
+  return L.divIcon({
+    className: '',
+    html: '<div style="width:10px;height:10px;border-radius:50%;background:var(--navy,#1e1a38);border:2px solid rgba(255,255,255,0.7);box-shadow:0 1px 4px rgba(0,0,0,.3)"></div>',
+    iconSize:    [10, 10],
+    iconAnchor:  [5, 5],
+    popupAnchor: [0, -8],
+  });
+}
+
+function foodIcon(type) {
   const iconUrl = TYPE_ICON[type] || 'assets/comfort_food.png';
   return L.divIcon({
     className: '',
     html: `<img src="${iconUrl}" style="width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 0 5px white) drop-shadow(0 0 5px white) drop-shadow(0 2px 6px rgba(0,0,0,.35))">`,
-    iconSize:    [10,10],
+    iconSize:    [52, 52],
     iconAnchor:  [26, 52],
     popupAnchor: [0, -52],
   });
+}
+
+function dotIcon(type) {
+  return map.getZoom() > ICON_ZOOM_THRESHOLD ? foodIcon(type) : simpleDot();
 }
 
 // --- Chips ---
@@ -557,48 +592,54 @@ function showProfile(biz) {
   updateDisplay();
 }
 
-// ── Community star (JSONBin) ─────────────────────────────────────────────────
-const JSONBIN_URL    = 'YOUR_JSONBIN_URL';   // e.g. https://api.jsonbin.io/v3/b/XXXXXXXX
-const JSONBIN_KEY    = 'YOUR_JSONBIN_APIKEY'; // $2b$10$... from jsonbin.io
+// ── Community star (GitHub Gist) ────────────────────────────────────────────
+const GIST_ID    = 'ae6e027686a0f45b26c62b6ecb84ff53';
+const GIST_TOKEN = 'REMOVED';
+const GIST_FILE  = 'mehko-star.json';
+const GIST_URL   = `https://api.github.com/gists/${GIST_ID}`;
 let   currentStarred = null;
 
 async function loadStar() {
-  if (!JSONBIN_URL || JSONBIN_URL.startsWith('YOUR')) return;
   try {
-    const r = await fetch(JSONBIN_URL + '/latest', {
-      headers: { 'X-Master-Key': JSONBIN_KEY }
+    const r = await fetch(GIST_URL, {
+      headers: { 'Authorization': `Bearer ${GIST_TOKEN}`, 'Accept': 'application/vnd.github+json' }
     });
     const d = await r.json();
-    currentStarred = d.record?.starred || null;
-    updateDisplay(); // re-render list to show badge
+    const raw = d.files?.[GIST_FILE]?.content;
+    if (raw) currentStarred = JSON.parse(raw).starred || null;
+    updateDisplay();
   } catch(e) { console.warn('Star load failed', e); }
 }
 
 async function toggleStar() {
-  if (!JSONBIN_URL || JSONBIN_URL.startsWith('YOUR')) {
-    alert('Set up JSONBin first — see JSONBIN_URL in the source.');
-    return;
-  }
-  const bizName = document.getElementById('profile-name').textContent;
-  // If already starred, unstar; otherwise star this one
+  const bizName    = document.getElementById('profile-name').textContent;
   const newStarred = currentStarred === bizName ? null : bizName;
-  const log = [];
+
+  // Read current log first
+  let log = [];
   try {
-    // Read existing log first
-    const r = await fetch(JSONBIN_URL + '/latest', { headers: { 'X-Master-Key': JSONBIN_KEY }});
+    const r = await fetch(GIST_URL, {
+      headers: { 'Authorization': `Bearer ${GIST_TOKEN}`, 'Accept': 'application/vnd.github+json' }
+    });
     const d = await r.json();
-    log.push(...(d.record?.log || []));
+    const raw = d.files?.[GIST_FILE]?.content;
+    if (raw) log = JSON.parse(raw).log || [];
   } catch(e) {}
+
   if (newStarred) log.unshift({ name: newStarred, ts: new Date().toISOString() });
-  const payload = { starred: newStarred, log: log.slice(0, 50) }; // keep last 50
+  const payload = JSON.stringify({ starred: newStarred, log: log.slice(0, 50) });
+
   try {
-    await fetch(JSONBIN_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
-      body: JSON.stringify(payload)
+    await fetch(GIST_URL, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${GIST_TOKEN}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ files: { [GIST_FILE]: { content: payload } } })
     });
     currentStarred = newStarred;
-    // refresh profile star UI
     const biz = BUSINESSES.find(b => b.name === bizName);
     if (biz) showProfile(biz);
     updateDisplay();
@@ -608,12 +649,43 @@ async function toggleStar() {
 loadStar();
 
 // ── Submission form ──────────────────────────────────────────────────────────
-const FORMSPREE_URL = 'YOUR_FORMSPREE_ENDPOINT'; // replace with https://formspree.io/f/xxxxxxxx
+const WEB3FORMS_KEY = '12a72e69-ad99-4a99-acf8-7529c388b59e';
 
-function openSubmitForm() {
-  document.getElementById('form-fields').style.display = '';
+function openSubmitForm(biz) {
+  const fields = document.getElementById('form-fields');
+  fields.style.display = '';
   document.getElementById('form-success').style.display = 'none';
+
+  if (biz) {
+    // Pre-fill for edit
+    fields.querySelector('h2').textContent = 'Suggest an Edit';
+    fields.querySelector('.sub-hint').textContent = 'Update the information below. Changes are reviewed before publishing.';
+    document.getElementById('f-type').value            = 'update';
+    document.getElementById('f-original-name').value  = biz.name;
+    document.getElementById('f-name').value            = biz.name;
+    document.getElementById('f-address').value         = biz.address || '';
+    // split "STREET, CITY ZIPCODE" → city field
+    const addrParts = (biz.address || '').split(',');
+    document.getElementById('f-city').value = addrParts.length > 1 ? addrParts[addrParts.length-1].replace(/\d{5}/, '').trim() : '';
+    document.getElementById('f-instagram').value = biz.instagram || '';
+    document.getElementById('f-website').value   = biz.website || '';
+    // Set business type select
+    const sel = document.getElementById('f-biztype');
+    for (let o of sel.options) o.selected = (o.value === biz.type);
+  } else {
+    // Reset for new submission
+    document.getElementById('form-fields').querySelector('h2').textContent = 'Submit a Business or Correction';
+    document.getElementById('form-fields').querySelector('.sub-hint').textContent = 'Add a new MEHKO business or correct existing information. All submissions are reviewed before publishing.';
+    document.getElementById('f-original-name').value = '';
+  }
+
   document.getElementById('submit-overlay').classList.add('open');
+}
+
+function openEditForm() {
+  const name = document.getElementById('profile-name').textContent;
+  const biz  = BUSINESSES.find(b => b.name === name);
+  if (biz) openSubmitForm(biz);
 }
 
 function closeSubmitForm() {
@@ -623,6 +695,9 @@ function closeSubmitForm() {
     document.getElementById(id).value = '';
   });
   document.getElementById('f-type').selectedIndex = 0;
+  document.getElementById('f-original-name').value = '';
+  document.getElementById('form-fields').querySelector('h2').textContent = 'Submit a Business or Correction';
+  document.getElementById('form-fields').querySelector('.sub-hint').textContent = 'Add a new MEHKO business or correct existing information. All submissions are reviewed before publishing.';
   document.getElementById('f-biztype').selectedIndex = 0;
 }
 
@@ -634,7 +709,8 @@ async function submitForm() {
   btn.textContent = 'Sending…'; btn.disabled = true;
 
   const data = {
-    submission_type: document.getElementById('f-type').value,
+    submission_type:  document.getElementById('f-type').value,
+    original_name:    document.getElementById('f-original-name').value.trim(),
     business_name:   name,
     address:         document.getElementById('f-address').value.trim(),
     city:            document.getElementById('f-city').value.trim(),
@@ -646,10 +722,10 @@ async function submitForm() {
   };
 
   try {
-    const resp = await fetch(FORMSPREE_URL, {
+    const resp = await fetch('https://api.web3forms.com/submit', {
       method: 'POST',
       headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ access_key: WEB3FORMS_KEY, ...data }),
     });
     if (resp.ok) {
       document.getElementById('form-fields').style.display = 'none';
@@ -686,7 +762,7 @@ function resetAll() {
   activeFilters.search = '';
   activeFilters.type = 'ALL';
   document.getElementById('search').value = '';
-  map.flyTo([34.0522, -118.2437], 10, { animate: true, duration: 0.8 });
+  map.flyTo([34.006, -118.360], 12, { animate: true, duration: 0.8 });
   renderChips();
   updateDisplay();
 }
